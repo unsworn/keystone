@@ -4,7 +4,8 @@
 
 var util = require('util'),
 	marked = require('marked'),
-	super_ = require('../Type');
+	super_ = require('../Type'),
+  jsxTransform = require('react-tools').transform;
 
 /**
  * Markdown FieldType Constructor
@@ -24,6 +25,9 @@ function markdown(list, path, options) {
 
 	// since wysiwyg option can be falsey this needs to use `in` instead of ||
 	this.wysiwyg = ('wysiwyg' in options) ? options.wysiwyg : true;
+
+  // store React vdom js: md --> html/jsx --> js
+	this.jsx = ('jsx' in options) ? options.jsx : false;
 
 	this._properties = ['wysiwyg', 'height', 'toolbarOptions'];
 
@@ -50,10 +54,12 @@ util.inherits(markdown, super_);
 markdown.prototype.addToSchema = function() {
 
 	var schema = this.list.schema;
+  var parseVdom = this.jsx;
 
 	var paths = this.paths = {
 		md: this._path.append('.md'),
-		html: this._path.append('.html')
+		html: this._path.append('.html'),
+		vdom: this._path.append('.vdom')
 	};
 
 	var setMarkdown = function(value) {
@@ -63,10 +69,19 @@ markdown.prototype.addToSchema = function() {
 		}
 
 		if (typeof value === 'string') {
-			this.set(paths.html, marked(value));
+      var html = marked(value);
+			this.set(paths.html, html);
+
+      if (parseVdom) {
+        // JSX requires a single parent element
+        var jsx = '<div className="md_jsx_contentblock">' + html + '</div>';
+        this.set(paths.vdom, jsxTransform(jsx));
+      }
+
 			return value;
 		} else {
 			this.set(paths.html, undefined);
+			this.set(paths.vdom, undefined);
 			return undefined;
 		}
 
@@ -75,6 +90,7 @@ markdown.prototype.addToSchema = function() {
 	schema.nested[this.path] = true;
 	schema.add({
 		html: { type: String },
+		vdom: { type: String },
 		md: { type: String, set: setMarkdown }
 	}, this.path + '.');
 
