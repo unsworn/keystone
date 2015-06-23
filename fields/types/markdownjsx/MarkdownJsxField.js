@@ -80,7 +80,15 @@ var renderMarkdown = function(component) {
 				callback: function(e) {
 					toggleHeading(e, '####');
 				}
-			}]
+			}, {
+        name: 'cmdYoutubeVideo',
+        title: 'YoutubeVideo',
+        btnText: 'YV',
+        callback: function(e) {
+          toggleHeading(e, '<YoutubeVideo id={VIDEO_ID} />') 
+        }
+      
+      }]
 		}],
 
 		// Insert Header buttons into the toolbar
