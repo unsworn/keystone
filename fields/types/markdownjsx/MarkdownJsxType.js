@@ -4,6 +4,7 @@
 
 var util = require('util'),
 	marked = require('marked'),
+  babel = require('babel-core'),
 	super_ = require('../Type');
 
 /**
@@ -49,11 +50,18 @@ util.inherits(markdownjsx, super_);
 
 markdownjsx.prototype.addToSchema = function() {
 
+  var babelOptions = {
+    ast: false,
+    compact: true,
+    blacklist: 'strict'
+  };
+
 	var schema = this.list.schema;
 
 	var paths = this.paths = {
 		md: this._path.append('.md'),
-		html: this._path.append('.html')
+		vdom: this._path.append('.vdom'),
+		//html: this._path.append('.html')
 	};
 
 	var setMarkdown = function(value) {
@@ -63,10 +71,24 @@ markdownjsx.prototype.addToSchema = function() {
 		}
 
 		if (typeof value === 'string') {
-			this.set(paths.html, marked(value));
+			//this.set(paths.html, marked(value));
+      
+      // Convert markdown to html/jsx 
+      var html = marked(value);
+
+      // Convert html/jsx to vdom
+      // JSX requires a single parent element 
+      var jsx = '<div className="md_jsx_contentblock">' + html + '</div>';
+      var vdom = babel.transform(jsx, babelOptions).code;
+
+      console.log('VDOM', vdom);
+
++     this.set(paths.vdom, vdom);
+      
 			return value;
 		} else {
-			this.set(paths.html, undefined);
+			//this.set(paths.html, undefined);
+			this.set(paths.vdom, undefined);
 			return undefined;
 		}
 
@@ -74,7 +96,8 @@ markdownjsx.prototype.addToSchema = function() {
 
 	schema.nested[this.path] = true;
 	schema.add({
-		html: { type: String },
+		//html: { type: String },
+		vdom: { type: String },
 		md: { type: String, set: setMarkdown }
 	}, this.path + '.');
 
